@@ -1,0 +1,5 @@
+requests
+schedule
+psycopg2-binary
+pytz
+discord.py

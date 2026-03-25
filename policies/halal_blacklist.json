@@ -1,0 +1,12 @@
+{
+  "sectors": [
+    "alcohol", "tobacco", "gambling",
+    "weapons", "pornography",
+    "conventional_banking", "riba"
+  ],
+  "tickers": [
+    "BUD", "STZ", "MO", "PM", "BTI",
+    "LMT", "RTX", "NOC", "GD",
+    "MGM", "WYNN", "LVS"
+  ]
+}
