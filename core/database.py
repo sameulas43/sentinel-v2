@@ -4,11 +4,9 @@ import json
 import psycopg2
 import psycopg2.extras
 from datetime import datetime, timezone
-from core.config import DATABASE_URL
 
 
 def _raw_log(event_type: str, data: dict, level: str = "info"):
-    """Log minimal sans dépendance circulaire."""
     print(json.dumps({
         "ts":    datetime.now(timezone.utc).isoformat(),
         "agent": "database",
@@ -18,17 +16,36 @@ def _raw_log(event_type: str, data: dict, level: str = "info"):
 
 
 def get_db():
+    """
+    Connexion Postgres via DATABASE_URL uniquement.
+    Ne tente JAMAIS une connexion locale.
+    Fail-fast explicite si DATABASE_URL vide.
+    """
+    # Import ici pour éviter l'exécution au build
+    from core.config import DATABASE_URL
+
+    if not DATABASE_URL:
+        _raw_log("database.no_url", {
+            "error": (
+                "DATABASE_URL vide. "
+                "Vérifier que le plugin PostgreSQL est lié au service sentinel-v2 "
+                "dans Railway Variables avec ${{Postgres.DATABASE_URL}}"
+            )
+        }, level="error")
+        raise RuntimeError(
+            "DATABASE_URL manquant — "
+            "aucune tentative de connexion locale effectuée."
+        )
+
+    # psycopg2 utilise DATABASE_URL directement
+    # Jamais de socket local /var/run/postgresql/
     return psycopg2.connect(DATABASE_URL)
 
 
 def init_db():
-    """
-    Exécute schema.sql de façon totalement idempotente.
-    Peut être appelé à chaque redémarrage sans risque.
-    """
+    """Exécute schema.sql — idempotent."""
     schema_path = os.path.join(os.path.dirname(__file__), "..", "schema.sql")
     if not os.path.exists(schema_path):
-        _raw_log("database.schema_missing", {"path": schema_path}, level="error")
         raise FileNotFoundError(f"schema.sql introuvable : {schema_path}")
 
     db = get_db()
